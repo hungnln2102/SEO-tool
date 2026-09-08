@@ -44,16 +44,20 @@ def process_data(pages_df, rd_df, backlink_df, anchor_df, as_thresh):
     # Create mapping dicts from Pages
     url_topic_map = dict(zip(pages_df['Source url'], pages_df['Topic']))
     url_pagetype_map = dict(zip(pages_df['Source url'], pages_df['Page Type']))
-    
-    # Filter backlink target URLs that only exist in Pages (optional, but ensures we match 1251 rows logic)
-    valid_urls = set(pages_df['Source url'])
-    backlink_df = backlink_df[backlink_df['Target url'].isin(valid_urls)].copy()
 
     # 2. Extract Domain for joining
     def get_domain(url):
-        if pd.isna(url): return None
-        ext = tldextract.extract(str(url))
-        return f"{ext.domain}.{ext.suffix}" if ext.suffix else ext.domain
+        try:
+            if pd.isna(url): return None
+            url_str = str(url).strip()
+            if not url_str.startswith(('http://', 'https://')):
+                url_str = 'http://' + url_str
+            netloc = urllib.parse.urlparse(url_str).netloc.lower()
+            if netloc.startswith('www.'):
+                netloc = netloc[4:]
+            return netloc
+        except:
+            return None
 
     if 'Source url' in backlink_df.columns:
         backlink_df['Source domain'] = backlink_df['Source url'].apply(get_domain)
